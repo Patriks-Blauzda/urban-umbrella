@@ -3,7 +3,7 @@ import gltflib
 
 
 class model:
-    relativezero = 0
+    currentzero = 0
     
     
     def __init__(self, gltftemplate = GLTF(model=GLTFModel())):
@@ -22,14 +22,9 @@ class model:
         self.gltf.model.accessors = []
         
         self.gltf.model.bufferViews = []
-        self.gltf.model.buffers = [gltflib.Buffer(byteLength=0)]
+        self.gltf.model.buffers = []
         
         self.gltf.resources = [gltflib.GLBResource(data=None)]
-    
-    
-    def append_buffer(self, *buffervalues):
-        for bytelength in buffervalues:
-            self.gltf.model.buffers[0].byteLength += bytelength
 
 
 
@@ -39,16 +34,24 @@ exportable.set_empty()
 thing = model(GLTF.load('file1.glb'))
 thing2 = model(GLTF.load('file2.glb'))
 
-
-# Buffer
-exportable.append_buffer(
-    thing.gltf.model.buffers[0].byteLength, thing2.gltf.model.buffers[0].byteLength
+exportable.gltf.model.buffers.append(
+    gltflib.Buffer(
+        byteLength=thing.gltf.model.buffers[0].byteLength + thing2.gltf.model.buffers[0].byteLength
+    )
 )
 
 
 # Buffer views
 exportable.gltf.model.bufferViews.extend(thing.gltf.model.bufferViews)
 exportable.gltf.model.bufferViews.extend(thing2.gltf.model.bufferViews)
+
+
+for i in range(len(exportable.gltf.model.bufferViews)):
+    if i > 0:
+        prior = exportable.gltf.model.bufferViews[i - 1]
+        exportable.gltf.model.bufferViews[i].byteOffset = (
+            prior.byteLength + prior.byteOffset
+        )
 
 
 # Accessors
@@ -83,10 +86,6 @@ if thing2.gltf.model.materials is not None:
 exportable.gltf.model.meshes.extend(thing.gltf.model.meshes)
 
 thing2.currentzero = len(exportable.gltf.model.meshes)
-
-# for mesh in thing2.gltf.model.meshes:
-    # for primitive in mesh.primitives:
-        # primitive.attributes.TEXCOORD_0 += thing2.currentzero
 
 exportable.gltf.model.meshes.extend(thing2.gltf.model.meshes)
 
