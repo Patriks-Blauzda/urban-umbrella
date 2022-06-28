@@ -1,5 +1,6 @@
 from gltflib import (GLTF, GLTFModel, GLBResource)
 import gltflib
+import os
 
 
 class model:
@@ -31,26 +32,22 @@ class model:
 exportable = model()
 exportable.set_empty()
 
-# GLB
-thing = model(GLTF.load('file1.glb'))
-thing2 = model(GLTF.load('file2.glb'))
+filearray = []
 
-# GLTF
-thing3 = model(GLTF.load('file3.gltf'))
-
-# Embedded GLTF
-thing4 = model(GLTF.load('file4.gltf'))
+for filename in os.listdir('./Put files here'):
+    if filename.endswith('.glb') or filename.endswith('.gltf'):
+        filearray.append("Put files here/{}".format(filename))
 
 
-filearray = [thing, thing2, thing3, thing4]
-
-for file in filearray:
+for filename in filearray:
+    file = model(GLTF.load(filename))
+    
     # Buffer and binary
     for buffer in file.gltf.model.buffers: 
         exportable.gltf.model.buffers[0].byteLength += buffer.byteLength
         
-        if (buffer.uri != None) and ('.bin' in buffer.uri):
-            with open(buffer.uri, 'rb') as bin:
+        if (buffer.uri != None) and buffer.uri.endswith('.bin'):
+            with open("Put files here/{}".format(buffer.uri), 'rb') as bin:
                 bytes = bin.read()
                 exportable.gltf.resources[0].data += bytes
         else:
