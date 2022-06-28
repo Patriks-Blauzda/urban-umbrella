@@ -22,96 +22,116 @@ class model:
         self.gltf.model.accessors = []
         
         self.gltf.model.bufferViews = []
-        self.gltf.model.buffers = []
+        self.gltf.model.buffers = [gltflib.Buffer(uri=None, byteLength=0)]
         
-        self.gltf.resources = [gltflib.GLBResource(data=None)]
+        self.gltf.resources = [gltflib.GLBResource(data=bytes())]
 
 
 
 exportable = model()
 exportable.set_empty()
 
+# GLB
 thing = model(GLTF.load('file1.glb'))
 thing2 = model(GLTF.load('file2.glb'))
 
-exportable.gltf.model.buffers.append(
-    gltflib.Buffer(
-        byteLength=thing.gltf.model.buffers[0].byteLength + thing2.gltf.model.buffers[0].byteLength
-    )
-)
+# GLTF
+thing3 = model(GLTF.load('file3.gltf'))
+
+# Embedded GLTF
+# thing4 = model(GLTF.load('file4.gltf'))
 
 
-# Buffer views
-exportable.gltf.model.bufferViews.extend(thing.gltf.model.bufferViews)
-exportable.gltf.model.bufferViews.extend(thing2.gltf.model.bufferViews)
+filearray = [thing, thing2, thing3]
 
-
-for i in range(len(exportable.gltf.model.bufferViews)):
-    if i > 0:
-        prior = exportable.gltf.model.bufferViews[i - 1]
-        exportable.gltf.model.bufferViews[i].byteOffset = (
-            prior.byteLength + prior.byteOffset
-        )
-
-
-# Accessors
-exportable.gltf.model.accessors.extend(thing.gltf.model.accessors)
-
-thing2.currentzero = len(exportable.gltf.model.accessors)
-for accessor in thing2.gltf.model.accessors:
-   accessor.bufferView += thing2.currentzero
-
-
-for mesh in thing2.gltf.model.meshes:
-    for primitive in mesh.primitives:
-        primitive.attributes.POSITION += thing2.currentzero
-        primitive.attributes.NORMAL += thing2.currentzero
-        primitive.attributes.TEXCOORD_0 += thing2.currentzero
+for file in filearray:
+    # Buffer and binary
+    for buffer in file.gltf.model.buffers:
+        exportable.gltf.model.buffers[0].byteLength += buffer.byteLength
+            
+        if (buffer.uri != None) and ['.bin' in buffer.uri]:
+            with open(buffer.uri, 'rb') as bin:
+                bytes = bin.read()
+                exportable.gltf.resources[0].data += bytes
+        else:
+            exportable.gltf.resources[0].data += file.gltf.resources[0].data
     
-        primitive.indices += thing2.currentzero
-   
-   
-exportable.gltf.model.accessors.extend(thing2.gltf.model.accessors)
+    
+    exportable.gltf.model.buffers.append(
+        gltflib.Buffer(
+            byteLength=thing.gltf.model.buffers[0].byteLength + thing2.gltf.model.buffers[0].byteLength
+        )
+    )
 
 
-# Materials
-if thing.gltf.model.materials is not None:
-    exportable.gltf.model.materials.extend(thing.gltf.model.materials)
-
-if thing2.gltf.model.materials is not None:
-    exportable.gltf.model.materials.extend(thing2.gltf.model.materials)
-
-
-# Meshes
-exportable.gltf.model.meshes.extend(thing.gltf.model.meshes)
-
-thing2.currentzero = len(exportable.gltf.model.meshes)
-
-exportable.gltf.model.meshes.extend(thing2.gltf.model.meshes)
+    # Buffer views
+    exportable.gltf.model.bufferViews.extend(file.gltf.model.bufferViews)
+    
+    for i in range(len(exportable.gltf.model.bufferViews)):
+        if i > 0:
+            prior = exportable.gltf.model.bufferViews[i - 1]
+            exportable.gltf.model.bufferViews[i].byteOffset = (
+                prior.byteLength + prior.byteOffset
+            )
 
 
-# Nodes
-exportable.gltf.model.nodes.extend(thing.gltf.model.nodes)
-
-for x in thing2.gltf.model.nodes:
-    x.mesh += thing2.currentzero
-
-exportable.gltf.model.nodes.extend(thing2.gltf.model.nodes)
+    # Accessors
+    file.currentzero = len(exportable.gltf.model.accessors)
+    for accessor in file.gltf.model.accessors:
+       accessor.bufferView += file.currentzero
 
 
-# Scenes
-exportable.gltf.model.scenes.extend(thing.gltf.model.scenes)
-
-for scene in thing2.gltf.model.scenes:
-    for x in range(len(scene.nodes)):
-        scene.nodes[x] += thing2.currentzero
+    for mesh in file.gltf.model.meshes:
+        for primitive in mesh.primitives:
+            primitive.attributes.POSITION += file.currentzero
+            primitive.attributes.NORMAL += file.currentzero
+            primitive.attributes.TEXCOORD_0 += file.currentzero
         
-    exportable.gltf.model.scenes[0].nodes.extend(scene.nodes)
-   
+            primitive.indices += file.currentzero
+       
+       
+    exportable.gltf.model.accessors.extend(file.gltf.model.accessors)
 
-# Binary
-exportable.gltf.resources[0].data = (
-    thing.gltf.resources[0].data + thing2.gltf.resources[0].data
-)
+
+    # Materials    
+    if file.gltf.model.materials is not None:
+        file.currentzero = len(exportable.gltf.model.materials)
+        
+        for mesh in file.gltf.model.meshes:
+            for primitive in mesh.primitives:
+                if primitive.material != None:
+                    primitive.material += file.currentzero
+        
+        exportable.gltf.model.materials.extend(file.gltf.model.materials)
+
+
+    # Meshes
+    file.currentzero = len(exportable.gltf.model.meshes)
+
+    exportable.gltf.model.meshes.extend(file.gltf.model.meshes)
+
+
+    # Nodes
+    for x in file.gltf.model.nodes:
+        x.mesh += file.currentzero
+
+    exportable.gltf.model.nodes.extend(file.gltf.model.nodes)
+
+
+    # Scenes
+    for scene in file.gltf.model.scenes:
+        for x in range(len(scene.nodes)):
+            scene.nodes[x] += file.currentzero
+    
+        
+        if file.gltf.model.scenes.index(scene) == len(exportable.gltf.model.scenes) - 1: 
+            exportable.gltf.model.scenes[file.gltf.model.scenes.index(scene)].nodes.extend(scene.nodes)
+        else:
+            exportable.gltf.model.scenes.append(scene)
+        
+        
+        
+       
+
 
 exportable.gltf.export('exportedmodel.glb')
