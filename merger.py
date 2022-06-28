@@ -57,23 +57,14 @@ for file in filearray:
             exportable.gltf.resources[0].data += file.gltf.resources[0].data
     
     
-    exportable.gltf.model.buffers.append(
-        gltflib.Buffer(
-            byteLength=thing.gltf.model.buffers[0].byteLength + thing2.gltf.model.buffers[0].byteLength
-        )
-    )
-
-
     # Buffer views
     exportable.gltf.model.bufferViews.extend(file.gltf.model.bufferViews)
     
-    for i in range(len(exportable.gltf.model.bufferViews)):
-        if i > 0:
-            prior = exportable.gltf.model.bufferViews[i - 1]
-            exportable.gltf.model.bufferViews[i].byteOffset = (
-                prior.byteLength + prior.byteOffset
-            )
-
+    for i in range(1, len(exportable.gltf.model.bufferViews)):
+        prior = exportable.gltf.model.bufferViews[i - 1]
+        exportable.gltf.model.bufferViews[i].byteOffset = (
+            prior.byteLength + prior.byteOffset
+        )
 
     # Accessors
     file.currentzero = len(exportable.gltf.model.accessors)
@@ -128,10 +119,6 @@ for file in filearray:
             exportable.gltf.model.scenes[file.gltf.model.scenes.index(scene)].nodes.extend(scene.nodes)
         else:
             exportable.gltf.model.scenes.append(scene)
-        
-        
-        
-       
 
 
 exportable.gltf.export('exportedmodel.glb')
