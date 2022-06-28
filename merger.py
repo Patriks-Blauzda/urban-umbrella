@@ -39,17 +39,17 @@ thing2 = model(GLTF.load('file2.glb'))
 thing3 = model(GLTF.load('file3.gltf'))
 
 # Embedded GLTF
-# thing4 = model(GLTF.load('file4.gltf'))
+thing4 = model(GLTF.load('file4.gltf'))
 
 
-filearray = [thing, thing2, thing3]
+filearray = [thing, thing2, thing3, thing4]
 
 for file in filearray:
     # Buffer and binary
-    for buffer in file.gltf.model.buffers:
+    for buffer in file.gltf.model.buffers: 
         exportable.gltf.model.buffers[0].byteLength += buffer.byteLength
-            
-        if (buffer.uri != None) and ['.bin' in buffer.uri]:
+        
+        if (buffer.uri != None) and ('.bin' in buffer.uri):
             with open(buffer.uri, 'rb') as bin:
                 bytes = bin.read()
                 exportable.gltf.resources[0].data += bytes
@@ -62,9 +62,11 @@ for file in filearray:
     
     for i in range(1, len(exportable.gltf.model.bufferViews)):
         prior = exportable.gltf.model.bufferViews[i - 1]
+        
         exportable.gltf.model.bufferViews[i].byteOffset = (
             prior.byteLength + prior.byteOffset
         )
+
 
     # Accessors
     file.currentzero = len(exportable.gltf.model.accessors)
