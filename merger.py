@@ -41,6 +41,7 @@ for filename in filearray:
 
     file = model(GLTF.load(filename))
     
+    
     # Buffer and binary
     for buffer in file.gltf.model.buffers: 
         exportable.gltf.model.buffers[0].byteLength += buffer.byteLength
@@ -56,15 +57,6 @@ for filename in filearray:
     # Buffer views
     currentzero = len(exportable.gltf.model.bufferViews)
     
-    exportable.gltf.model.bufferViews.extend(file.gltf.model.bufferViews)
-    
-    for i in range(1, len(exportable.gltf.model.bufferViews)):
-        prior = exportable.gltf.model.bufferViews[i - 1]
-        
-        exportable.gltf.model.bufferViews[i].byteOffset = (
-            prior.byteLength + prior.byteOffset
-        )
-    
     
     # Textures
     if file.gltf.model.textures != None:
@@ -76,8 +68,10 @@ for filename in filearray:
     currentzero = len(exportable.gltf.model.accessors)
     for accessor in file.gltf.model.accessors:
        accessor.bufferView += currentzero
-
-
+    
+    
+    # Materials and meshes
+    # Attributes not iterable because they are not considered dicts
     for mesh in file.gltf.model.meshes:
         for primitive in mesh.primitives:
             primitive.attributes.POSITION += currentzero
@@ -85,47 +79,57 @@ for filename in filearray:
             primitive.attributes.TEXCOORD_0 += currentzero
         
             primitive.indices += currentzero
-       
-       
-    exportable.gltf.model.accessors.extend(file.gltf.model.accessors)
-
-
+    
+    
     # Materials and meshes
     if file.gltf.model.materials is not None:
         currentzero = len(exportable.gltf.model.materials)
         
         for mesh in file.gltf.model.meshes:
             for primitive in mesh.primitives:
-                if primitive.material != None:
+                if primitive.material is not None:
                     primitive.material += currentzero
-                    
-        
-        exportable.gltf.model.materials.extend(file.gltf.model.materials)
-
-
+    
+    
     # Meshes
     currentzero = len(exportable.gltf.model.meshes)
 
-    exportable.gltf.model.meshes.extend(file.gltf.model.meshes)
-    
     
     # Nodes
     for x in file.gltf.model.nodes:
         x.mesh += currentzero
-
-    exportable.gltf.model.nodes.extend(file.gltf.model.nodes)
     
-
+    
     # Scenes
-    for scene in file.gltf.model.scenes:
+    for i, scene in enumerate(file.gltf.model.scenes):
         for x in range(len(scene.nodes)):
             scene.nodes[x] += currentzero
     
         
-        if file.gltf.model.scenes.index(scene) == len(exportable.gltf.model.scenes) - 1: 
-            exportable.gltf.model.scenes[file.gltf.model.scenes.index(scene)].nodes.extend(scene.nodes)
+        if i == len(exportable.gltf.model.scenes) - 1: 
+            exportable.gltf.model.scenes[i].nodes.extend(scene.nodes)
         else:
             exportable.gltf.model.scenes.append(scene)
+    
+    
+    if file.gltf.model.materials is not None:
+        exportable.gltf.model.materials.extend(file.gltf.model.materials)
+    
+    exportable.gltf.model.bufferViews.extend(file.gltf.model.bufferViews)
+    exportable.gltf.model.accessors.extend(file.gltf.model.accessors)
+    exportable.gltf.model.meshes.extend(file.gltf.model.meshes)
+    exportable.gltf.model.nodes.extend(file.gltf.model.nodes)
+
+
+
+# BufferView offset update
+for i in range(1, len(exportable.gltf.model.bufferViews)):
+        prior = exportable.gltf.model.bufferViews[i - 1]
+        
+        exportable.gltf.model.bufferViews[i].byteOffset = (
+            prior.byteLength + prior.byteOffset
+        )
+
 
 
 exportable.gltf.export('exportedmodel.glb')
