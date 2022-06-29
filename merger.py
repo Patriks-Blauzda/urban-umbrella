@@ -1,11 +1,9 @@
 from gltflib import (GLTF, GLTFModel, GLBResource)
 import gltflib
+import os
 
 
 class model:
-    relativezero = 0
-    
-    
     def __init__(self, gltftemplate = GLTF(model=GLTFModel())):
         self.gltf = gltftemplate
         
@@ -22,97 +20,116 @@ class model:
         self.gltf.model.accessors = []
         
         self.gltf.model.bufferViews = []
-        self.gltf.model.buffers = [gltflib.Buffer(byteLength=0)]
+        self.gltf.model.buffers = [gltflib.Buffer(uri=None, byteLength=0)]
         
-        self.gltf.resources = [gltflib.GLBResource(data=None)]
-    
-    
-    def append_buffer(self, *buffervalues):
-        for bytelength in buffervalues:
-            self.gltf.model.buffers[0].byteLength += bytelength
+        self.gltf.resources = [gltflib.GLBResource(data=bytes())]
 
 
 
 exportable = model()
 exportable.set_empty()
 
-thing = model(GLTF.load('file1.glb'))
-thing2 = model(GLTF.load('file2.glb'))
+filearray = []
+
+for filename in os.listdir('./Put files here'):
+    if filename.endswith('.glb') or filename.endswith('.gltf'):
+        filearray.append("Put files here/{}".format(filename))
 
 
-# Buffer
-exportable.append_buffer(
-    thing.gltf.model.buffers[0].byteLength, thing2.gltf.model.buffers[0].byteLength
-)
+for filename in filearray:
+    currentzero = 0
 
-
-# Buffer views
-exportable.gltf.model.bufferViews.extend(thing.gltf.model.bufferViews)
-exportable.gltf.model.bufferViews.extend(thing2.gltf.model.bufferViews)
-
-
-# Accessors
-exportable.gltf.model.accessors.extend(thing.gltf.model.accessors)
-
-thing2.currentzero = len(exportable.gltf.model.accessors)
-for accessor in thing2.gltf.model.accessors:
-   accessor.bufferView += thing2.currentzero
-
-
-for mesh in thing2.gltf.model.meshes:
-    for primitive in mesh.primitives:
-        primitive.attributes.POSITION += thing2.currentzero
-        primitive.attributes.NORMAL += thing2.currentzero
-        primitive.attributes.TEXCOORD_0 += thing2.currentzero
+    file = model(GLTF.load(filename))
     
-        primitive.indices += thing2.currentzero
-   
-   
-exportable.gltf.model.accessors.extend(thing2.gltf.model.accessors)
-
-
-# Materials
-if thing.gltf.model.materials is not None:
-    exportable.gltf.model.materials.extend(thing.gltf.model.materials)
-
-if thing2.gltf.model.materials is not None:
-    exportable.gltf.model.materials.extend(thing2.gltf.model.materials)
-
-
-# Meshes
-exportable.gltf.model.meshes.extend(thing.gltf.model.meshes)
-
-thing2.currentzero = len(exportable.gltf.model.meshes)
-
-# for mesh in thing2.gltf.model.meshes:
-    # for primitive in mesh.primitives:
-        # primitive.attributes.TEXCOORD_0 += thing2.currentzero
-
-exportable.gltf.model.meshes.extend(thing2.gltf.model.meshes)
-
-
-# Nodes
-exportable.gltf.model.nodes.extend(thing.gltf.model.nodes)
-
-for x in thing2.gltf.model.nodes:
-    x.mesh += thing2.currentzero
-
-exportable.gltf.model.nodes.extend(thing2.gltf.model.nodes)
-
-
-# Scenes
-exportable.gltf.model.scenes.extend(thing.gltf.model.scenes)
-
-for scene in thing2.gltf.model.scenes:
-    for x in range(len(scene.nodes)):
-        scene.nodes[x] += thing2.currentzero
+    
+    # Buffer and binary
+    for buffer in file.gltf.model.buffers: 
+        exportable.gltf.model.buffers[0].byteLength += buffer.byteLength
         
-    exportable.gltf.model.scenes[0].nodes.extend(scene.nodes)
-   
+        if (buffer.uri != None) and buffer.uri.endswith('.bin'):
+            with open("Put files here/{}".format(buffer.uri), 'rb') as bin:
+                bytes = bin.read()
+                exportable.gltf.resources[0].data += bytes
+        else:
+            exportable.gltf.resources[0].data += file.gltf.resources[0].data
+    
+    
+    # Buffer views
+    currentzero = len(exportable.gltf.model.bufferViews)
+    
+    
+    # Textures
+    if file.gltf.model.textures != None:
+        for texture in file.gltf.model.textures:
+            texture.sampler += currentzero
+    
+    
+    # Accessors
+    currentzero = len(exportable.gltf.model.accessors)
+    for accessor in file.gltf.model.accessors:
+       accessor.bufferView += currentzero
+    
+    
+    # Materials and meshes
+    # Attributes not iterable because they are not considered dicts
+    for mesh in file.gltf.model.meshes:
+        for primitive in mesh.primitives:
+            primitive.attributes.POSITION += currentzero
+            primitive.attributes.NORMAL += currentzero
+            primitive.attributes.TEXCOORD_0 += currentzero
+        
+            primitive.indices += currentzero
+    
+    
+    # Materials and meshes
+    if file.gltf.model.materials is not None:
+        currentzero = len(exportable.gltf.model.materials)
+        
+        for mesh in file.gltf.model.meshes:
+            for primitive in mesh.primitives:
+                if primitive.material is not None:
+                    primitive.material += currentzero
+    
+    
+    # Meshes
+    currentzero = len(exportable.gltf.model.meshes)
 
-# Binary
-exportable.gltf.resources[0].data = (
-    thing.gltf.resources[0].data + thing2.gltf.resources[0].data
-)
+    
+    # Nodes
+    for x in file.gltf.model.nodes:
+        x.mesh += currentzero
+    
+    
+    # Scenes
+    for i, scene in enumerate(file.gltf.model.scenes):
+        for x in range(len(scene.nodes)):
+            scene.nodes[x] += currentzero
+    
+        
+        if i == len(exportable.gltf.model.scenes) - 1: 
+            exportable.gltf.model.scenes[i].nodes.extend(scene.nodes)
+        else:
+            exportable.gltf.model.scenes.append(scene)
+    
+    
+    if file.gltf.model.materials is not None:
+        exportable.gltf.model.materials.extend(file.gltf.model.materials)
+    
+    exportable.gltf.model.bufferViews.extend(file.gltf.model.bufferViews)
+    exportable.gltf.model.accessors.extend(file.gltf.model.accessors)
+    exportable.gltf.model.meshes.extend(file.gltf.model.meshes)
+    exportable.gltf.model.nodes.extend(file.gltf.model.nodes)
+
+
+
+# BufferView offset update
+for i in range(1, len(exportable.gltf.model.bufferViews)):
+        prior = exportable.gltf.model.bufferViews[i - 1]
+        
+        exportable.gltf.model.bufferViews[i].byteOffset = (
+            prior.byteLength + prior.byteOffset
+        )
+
+
 
 exportable.gltf.export('exportedmodel.glb')
