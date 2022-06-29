@@ -4,9 +4,6 @@ import os
 
 
 class model:
-    currentzero = 0
-    
-    
     def __init__(self, gltftemplate = GLTF(model=GLTFModel())):
         self.gltf = gltftemplate
         
@@ -40,6 +37,8 @@ for filename in os.listdir('./Put files here'):
 
 
 for filename in filearray:
+    currentzero = 0
+
     file = model(GLTF.load(filename))
     
     # Buffer and binary
@@ -55,6 +54,8 @@ for filename in filearray:
     
     
     # Buffer views
+    currentzero = len(exportable.gltf.model.bufferViews)
+    
     exportable.gltf.model.bufferViews.extend(file.gltf.model.bufferViews)
     
     for i in range(1, len(exportable.gltf.model.bufferViews)):
@@ -63,55 +64,62 @@ for filename in filearray:
         exportable.gltf.model.bufferViews[i].byteOffset = (
             prior.byteLength + prior.byteOffset
         )
-
-
+    
+    
+    # Textures
+    if file.gltf.model.textures != None:
+        for texture in file.gltf.model.textures:
+            texture.sampler += currentzero
+    
+    
     # Accessors
-    file.currentzero = len(exportable.gltf.model.accessors)
+    currentzero = len(exportable.gltf.model.accessors)
     for accessor in file.gltf.model.accessors:
-       accessor.bufferView += file.currentzero
+       accessor.bufferView += currentzero
 
 
     for mesh in file.gltf.model.meshes:
         for primitive in mesh.primitives:
-            primitive.attributes.POSITION += file.currentzero
-            primitive.attributes.NORMAL += file.currentzero
-            primitive.attributes.TEXCOORD_0 += file.currentzero
+            primitive.attributes.POSITION += currentzero
+            primitive.attributes.NORMAL += currentzero
+            primitive.attributes.TEXCOORD_0 += currentzero
         
-            primitive.indices += file.currentzero
+            primitive.indices += currentzero
        
        
     exportable.gltf.model.accessors.extend(file.gltf.model.accessors)
 
 
-    # Materials    
+    # Materials and meshes
     if file.gltf.model.materials is not None:
-        file.currentzero = len(exportable.gltf.model.materials)
+        currentzero = len(exportable.gltf.model.materials)
         
         for mesh in file.gltf.model.meshes:
             for primitive in mesh.primitives:
                 if primitive.material != None:
-                    primitive.material += file.currentzero
+                    primitive.material += currentzero
+                    
         
         exportable.gltf.model.materials.extend(file.gltf.model.materials)
 
 
     # Meshes
-    file.currentzero = len(exportable.gltf.model.meshes)
+    currentzero = len(exportable.gltf.model.meshes)
 
     exportable.gltf.model.meshes.extend(file.gltf.model.meshes)
-
-
+    
+    
     # Nodes
     for x in file.gltf.model.nodes:
-        x.mesh += file.currentzero
+        x.mesh += currentzero
 
     exportable.gltf.model.nodes.extend(file.gltf.model.nodes)
-
+    
 
     # Scenes
     for scene in file.gltf.model.scenes:
         for x in range(len(scene.nodes)):
-            scene.nodes[x] += file.currentzero
+            scene.nodes[x] += currentzero
     
         
         if file.gltf.model.scenes.index(scene) == len(exportable.gltf.model.scenes) - 1: 
